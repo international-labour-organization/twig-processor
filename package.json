@@ -2,6 +2,7 @@
   "name": "twig-processor",
   "version": "1.0.0",
   "description": "Provides a ⚡️ Vite plugin to transform 🌱 Twig into HTML with a 💧 Drupal flavour",
+  "types": "./src/index.d.ts",
   "keywords": [
     "Vite",
     "Vite plugin",
