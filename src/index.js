@@ -69,6 +69,17 @@ const resolveNamespaceOrComponent = (namespaces, template) => {
   return Twig.path.expandNamespace(namespaces, resolveTemplate)
 }
 
+const resolveJS = (directory) => {
+  const pathChunks = directory.split("/")
+  if (pathChunks.length === 0) return
+  const ext = "behavior.js"
+
+  const componentName = pathChunks[pathChunks.length - 1]
+  if (!existsSync(resolve(directory, `${componentName}.${ext}`))) return
+
+  return resolve(directory, `${componentName}.${ext}`)
+}
+
 const compileTemplate = (id, file, { namespaces }) => {
   return new Promise((resolve, reject) => {
     const options = { namespaces, rethrow: true, allowInlineIncludes: true }
@@ -135,7 +146,8 @@ const plugin = (options = {}) => {
           functions,
           code,
           includes,
-          seen = []
+          seen = [],
+          withJS
 
         try {
           const result = await compileTemplate(id, id, options).catch(
@@ -148,6 +160,7 @@ const plugin = (options = {}) => {
           code = result.code
           includes = result.includes
           const includePromises = []
+          const jsBundle = resolveJS(dirname(id))
           const processIncludes = (template) => {
             const file = resolveFile(
               dirname(id),
@@ -182,6 +195,10 @@ const plugin = (options = {}) => {
             )
             .join("\n")
 
+          if (jsBundle) {
+            withJS = `import '${jsBundle}';`
+          }
+
           functions = Object.entries(options.functions)
             .map(([name, value]) => {
               return `
@@ -206,6 +223,7 @@ const plugin = (options = {}) => {
         import Twig, { twig } from 'twig';
         import DrupalAttribute from 'drupal-attribute';
         import { addDrupalExtensions } from 'drupal-twig-extensions/twig';
+        ${withJS}
         ${frameworkInclude}
 
         ${embed}
@@ -213,7 +231,7 @@ const plugin = (options = {}) => {
         ${functions}
 
         addDrupalExtensions(Twig);
-        
+
         // Disable caching.
         Twig.cache(false);
 
